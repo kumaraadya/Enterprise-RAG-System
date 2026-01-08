@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Environment variables
+.env
+
+# Data files (too large for git)
+data/raw/
+data/cleaned/
+data/chunks/
+data/embeddings/
+data/indexes/
+
+# MLflow
+mlruns/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
