@@ -56,3 +56,68 @@ class FAISSRetriever:
         print(f"FAISS index built: {index_type}")
         print(f"   Vectors: {self.index.ntotal}")
         print(f"   Dimension: {self.embedding_dim}")
+
+    """
+        Search for top-k most similar chunks.
+        
+        Args:
+            query_embedding: Query vector (1D array)
+            k: Number of results to return
+            
+        Returns:
+            (chunk_ids, scores) where scores are cosine similarities
+    """
+    def search(self, query_embedding: np.ndarray, k: int = 10) -> Tuple[List[str], List[float]]:        
+        if self.index is None:
+            raise ValueError("Index not built. Call build_index() first.")
+
+        if query_embedding.ndim == 1:
+            query_embedding = query_embedding.reshape(1, -1)
+
+        scores, indices = self.index.search(query_embedding.astype('float32'), k)
+
+        retrieved_ids = [self.chunk_ids[idx] for idx in indices[0]]
+        retrieved_scores = scores[0].tolist()
+        
+        return retrieved_ids, retrieved_scores
+    
+    """
+        Save index and metadata to disk.
+        
+        Args:
+            index_path: Path for FAISS index file
+            metadata_path: Path for metadata JSON
+    """
+    def save(self, index_path: Path, metadata_path: Path):
+        faiss.write_index(self.index, str(index_path))
+        metadata = {
+            "embedding_dim": self.embedding_dim,
+            "num_vectors": self.index.ntotal,
+            "chunk_ids": self.chunk_ids
+        }
+        
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        print(f"Index saved to: {index_path}")
+        print(f"Metadata saved to: {metadata_path}")
+
+    """
+        Load index and metadata from disk.
+        
+        Args:
+            index_path: Path to FAISS index file
+            metadata_path: Path to metadata JSON
+    """
+    def load(self, index_path: Path, metadata_path: Path):
+
+        self.index = faiss.read_index(str(index_path))
+
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        self.embedding_dim = metadata['embedding_dim']
+        self.chunk_ids = metadata['chunk_ids']
+        
+        print(f"Index loaded from: {index_path}")
+        print(f"Vectors: {self.index.ntotal}")
