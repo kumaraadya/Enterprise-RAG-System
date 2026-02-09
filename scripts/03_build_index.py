@@ -23,3 +23,47 @@ from src.config import (
 )
 from src.retrieval.embeddings import EmbeddingGenerator
 from src.retrieval.dense_retriever import FAISSRetriever
+
+def main():
+    print("Embedding & Index Builder")
+    print(f"Model: {EMBEDDING_MODEL}")
+    print(f"Batch size: {EMBEDDING_BATCH_SIZE}")
+
+    chunks_path = CHUNKS_DIR / "chunks.json"
+    print(f"\nLoading chunks from: {chunks_path}")
+    
+    with open(chunks_path, 'r') as f:
+        chunks = json.load(f)
+    
+    print(f"Loaded {len(chunks)} chunks")
+
+    print("\nInitializing embedding model...")
+    generator = EmbeddingGenerator(
+        model_name=EMBEDDING_MODEL,
+        cache_dir=EMBEDDINGS_DIR
+    )
+    print("\nGenerating embeddings...")
+    embeddings = generator.encode_chunks(chunks, batch_size=EMBEDDING_BATCH_SIZE)
+    
+    print(f"Generated embeddings: {embeddings.shape}")
+    chunk_ids = [chunk['chunk_id'] for chunk in chunks]
+
+    embeddings_path = EMBEDDINGS_DIR / "chunk_embeddings.npz"
+    generator.save_embeddings(embeddings, chunk_ids, embeddings_path)
+
+    print("\nBuilding FAISS index...")
+    retriever = FAISSRetriever(embedding_dim=generator.embedding_dim)
+    retriever.build_index(embeddings, chunk_ids, index_type="flatip")
+
+    index_path = INDEXES_DIR / "faiss_index.bin"
+    metadata_path = INDEXES_DIR / "faiss_metadata.json"
+    retriever.save(index_path, metadata_path)
+
+    print("INDEX Build Complete")
+    print(f"Embeddings: {embeddings_path}")
+    print(f"FAISS Index: {index_path}")
+    print(f"Ready for retrieval!")
+
+
+if __name__ == "__main__":
+    main()
