@@ -23,6 +23,7 @@ from src.config import (
 )
 from src.retrieval.embeddings import EmbeddingGenerator
 from src.retrieval.dense_retriever import FAISSRetriever
+from src.retrieval.sparse_retriever import BM25Retriever
 
 def main():
     print("Embedding & Index Builder")
@@ -59,7 +60,15 @@ def main():
     metadata_path = INDEXES_DIR / "faiss_metadata.json"
     retriever.save(index_path, metadata_path)
 
-    print("INDEX Build Complete")
+    print("\nBuilding BM25 index...")
+    bm25_retriever = BM25Retriever()
+    bm25_retriever.build_index(chunks)
+
+    bm25_path = INDEXES_DIR / "bm25_index.pkl"
+    bm25_retriever.save(bm25_path)
+    print(f"BM25 Index: {bm25_path}")
+
+    print("Index Build Complete")
     print(f"Embeddings: {embeddings_path}")
     print(f"FAISS Index: {index_path}")
     print(f"Ready for retrieval!")
