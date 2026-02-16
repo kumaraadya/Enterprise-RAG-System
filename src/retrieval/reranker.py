@@ -67,7 +67,7 @@ class CrossEncoderReranker:
             (reranked_ids, scores)
     """   
     def rerank_by_ids(self, query:str, chunk_ids: List[str], chunks_dict: Dict[str, Dict],
-                       top_n: int = 5) -> Tuple[Lists[str, List[float]]]:
+                       top_n: int = 5) -> Tuple[List[str], List[float]]:
         chunks = [chunks_dict[cid] for cid in chunk_ids if cid in chunks_dict]
 
         reranked_chunks, scores = self.rerank(query, chunks, top_n)
@@ -102,5 +102,81 @@ class CrossEncoderTrainer:
             samples.append((query, neg, 0.0))
 
             return samples
-    
-        
+
+    """
+        Fine-tune cross-encoder.        
+        Uses binary classification loss:
+        - Score = 1 for relevant pairs
+        - Score = 0 for irrelevant pairs        
+        Args:
+            train_samples: List of (query, chunk, label) tuples
+            epochs: Training epochs
+            batch_size: Batch size
+            warmup_steps: Warmup steps for learning rate
+            output_path: Where to save fine-tuned model
+    """  
+    def train(self, train_examples: List[Tuple], epochs: int = 3,
+              batch_size: int = 16, warmup_steps: int = 100, output_path: str = "models/cross-encoder-finetuned"):
+        from sentence_transformers import InputExample
+        from torch.utils.data import DataLoader
+
+        train_examples = [
+            InputExample(texts=[query, chunk], label=float(label))
+            for query, chunk, label in train_examples
+            ]
+
+        train_dataloader = DataLoader(
+            train_examples,
+            shuffle = True,
+            batch_size=batch_size
+        )
+
+        self.model_fit(
+            train_dataloader=train_dataloader,
+            epochs=epochs,
+            warmup_steps=warmup_steps,
+            output_path=output_path,
+            show_progress_bar=True
+        )
+        print(f"Model fine tuned and saved to: {output_path}")  
+
+    def create_weak_training_data(
+            chunks: List[Dict], num_samples: int = 1000
+    )->Tuple[List[str], List[str], List[str]]:
+        import random
+
+        queries = []
+        positives = []
+        negatives = []
+
+        doc_to_chunks = {}
+        for chunk in chunks:
+            doc_id = chunk['doc_id']
+            if doc_id not in doc_to_chunks:
+                doc_to_chunks[doc_id] = []
+            doc_to_chunks[doc_id].append(chunk)
+
+        documents = list(doc_to_chunks.keys())
+
+        for _ in range(num_samples):
+            doc_id = random.choice(documents)
+            doc_chunks = doc_to_chunks[doc_id]
+
+            if len(doc_chunks) < 2:
+                continue
+
+            chunk1, chunk2 = random.sample(doc_chunks, 2)
+
+            query = chunk1['text'][:200]
+            positive = chunk2['text']
+
+            other_docs = [d for d in documents if d != doc_id]
+            neg_doc = random.choice(other_docs)
+            neg_chunk = random.choice(doc_to_chunks[neg_doc])
+            negative = neg_chunk['text']
+
+            queries.append(query)
+            positives.append(positive)
+            negatives.append(negative)
+
+        return queries, positives, negatives       
