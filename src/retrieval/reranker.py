@@ -56,5 +56,51 @@ class CrossEncoderReranker:
 
         return top_chunks, top_scores
     
+    """
+        Rerank given chunk IDs.        
+        Args:
+            query: User query
+            chunk_ids: List of chunk IDs to rerank
+            chunks_dict: Mapping from chunk_id to chunk dict
+            top_n: Number to return            
+        Returns:
+            (reranked_ids, scores)
+    """   
+    def rerank_by_ids(self, query:str, chunk_ids: List[str], chunks_dict: Dict[str, Dict],
+                       top_n: int = 5) -> Tuple[Lists[str, List[float]]]:
+        chunks = [chunks_dict[cid] for cid in chunk_ids if cid in chunks_dict]
+
+        reranked_chunks, scores = self.rerank(query, chunks, top_n)
+
+        reranked_ids = [chunk['chunk_id'] for chunk in reranked_chunks]
+
+        return reranked_ids, scores
+
+"""
+    Fine-tune cross-encoder on custom data.
+"""   
+class CrossEncoderTrainer:
+    def __init__(self, model_name: str):
+        self.model = CrossEncoder(model_name)
+        self.model_name = model_name
+    """
+        Prepare data for ranking loss.        
+        Creates triplets: (query, positive, negative)        
+        Args:
+            queries: List of queries
+            positive_chunks: Relevant chunks for each query
+            negative_chunks: Irrelevant chunks for each query            
+        Returns:
+            List of training samples
+    """
+    def prepare_training_data(self, queries: List[str], positive_chunks: List[str], 
+                              negative_chunks: List[str]) -> List[Tuple]:
+        samples = []
+
+        for query, pos, neg in zip(queries, positive_chunks, negative_chunks):
+            samples.append((query, pos, 1.0))
+            samples.append((query, neg, 0.0))
+
+            return samples
     
         
