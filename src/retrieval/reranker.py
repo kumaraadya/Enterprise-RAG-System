@@ -140,6 +140,22 @@ class CrossEncoderTrainer:
         )
         print(f"Model fine tuned and saved to: {output_path}")  
 
+    """
+        Create weak training labels from chunks.
+    
+        Weak supervision strategy:
+        - Positive: Chunks from same document/section
+        - Negative: Random chunks from different documents
+    
+        This isn't perfect but provides signal for fine-tuning.
+    
+        Args:
+            chunks: All chunks with metadata
+            num_samples: Number of training samples to create
+        
+        Returns:
+            (queries, positive_chunks, negative_chunks)
+    """
     def create_weak_training_data(
             chunks: List[Dict], num_samples: int = 1000
     )->Tuple[List[str], List[str], List[str]]:
