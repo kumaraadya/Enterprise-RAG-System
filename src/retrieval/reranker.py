@@ -115,14 +115,14 @@ class CrossEncoderTrainer:
             warmup_steps: Warmup steps for learning rate
             output_path: Where to save fine-tuned model
     """  
-    def train(self, train_examples: List[Tuple], epochs: int = 3,
+    def train(self, train_samples: List[Tuple], epochs: int = 3,
               batch_size: int = 16, warmup_steps: int = 100, output_path: str = "models/cross-encoder-finetuned"):
         from sentence_transformers import InputExample
         from torch.utils.data import DataLoader
 
         train_examples = [
             InputExample(texts=[query, chunk], label=float(label))
-            for query, chunk, label in train_examples
+            for query, chunk, label in train_samples
             ]
 
         train_dataloader = DataLoader(
@@ -131,7 +131,7 @@ class CrossEncoderTrainer:
             batch_size=batch_size
         )
 
-        self.model_fit(
+        self.model.fit(
             train_dataloader=train_dataloader,
             epochs=epochs,
             warmup_steps=warmup_steps,
@@ -156,7 +156,7 @@ class CrossEncoderTrainer:
         Returns:
             (queries, positive_chunks, negative_chunks)
     """
-    def create_weak_training_data(
+def create_weak_training_data(
             chunks: List[Dict], num_samples: int = 1000
     )->Tuple[List[str], List[str], List[str]]:
         import random
