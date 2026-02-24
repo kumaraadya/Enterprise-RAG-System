@@ -112,6 +112,16 @@ class Guardrails:
             "is_refusal": is_refusal
         }
     
+    """
+        Clean and limit user query.
+        
+        Args:
+            query: Raw user input
+            max_length: Maximum query length
+            
+        Returns:
+            Sanitized query
+    """
     @staticmethod
     def sanitize_query(query: str, max_length: int = 500) -> str:
         query = " ".join(query.split())
